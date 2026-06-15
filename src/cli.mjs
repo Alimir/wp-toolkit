@@ -7,6 +7,7 @@ import { deployProject } from './deploy.mjs';
 import { makePot } from './i18n.mjs';
 import { makeJson } from './i18n-json.mjs';
 import { releaseProject } from './wp-deploy.mjs';
+import { resolveBuildVariant, resolveDeployTarget } from './cli-args.mjs';
 
 const HELP = `wp-toolkit — WordPress plugin build and deploy toolkit
 
@@ -14,25 +15,31 @@ Usage:
   wp-toolkit <command> [options]
 
 Commands:
-  build           Build production bundle and zip
-  build:js        Compile and minify JavaScript only
-  build:css       Compile and minify CSS only
-  dev             Watch and rebuild assets
-  deploy [name]   Rsync build/ to a configured server (default: prod)
-  product [name]  Build then deploy (default: prod)
-  release         Build then publish to WordPress.org SVN
-  i18n            Generate POT translation file
-  i18n:json       Generate JSON files from PO translations
+  build [--variant <name>]   Build production bundle and zip
+  build:js                   Compile and minify JavaScript only
+  build:css                  Compile and minify CSS only
+  dev                        Watch and rebuild assets
+  deploy [name]              Rsync build/ to a configured server (default: prod)
+  product [name] [--variant <name>]
+                             Build then deploy (optional named variant)
+  release                    Build then publish to WordPress.org SVN
+  i18n                       Generate POT translation file
+  i18n:json                  Generate JSON files from PO translations
+
+Options:
+  --variant <name>           Use a named build variant from wp-toolkit.config.mjs
+  WP_BUILD_VARIANT=<name>    Same as --variant (useful in npm scripts)
 
 Examples:
   wp-toolkit build
-  wp-toolkit dev
-  wp-toolkit product prod
+  wp-toolkit build --variant regional
+  wp-toolkit product prod_ir --variant regional
+  WP_BUILD_VARIANT=regional wp-toolkit product
   WP_RELEASE_DRY_RUN=1 wp-toolkit release
 
 Configuration:
-  wp-toolkit.config.mjs   Plugin-specific settings
-  .env                    Deploy hosts and SVN credentials
+  wp-toolkit.config.mjs      Plugin-specific settings
+  .env                       Deploy hosts and SVN credentials
 `;
 
 export async function runCli(argv) {
@@ -43,7 +50,18 @@ export async function runCli(argv) {
 		return;
 	}
 
-	await initContext(process.cwd());
+	const buildCommands = new Set(['build', 'product', 'release']);
+	const { variant, positionals, config } = buildCommands.has(command)
+		? await resolveBuildVariant(command, args)
+		: { variant: null, positionals: args, config: null };
+
+	if (buildCommands.has(command)) {
+		await initContext(process.cwd(), { variant });
+	} else {
+		await initContext(process.cwd());
+	}
+
+	const variantConfig = variant ? config?.variants?.[variant] : null;
 
 	switch (command) {
 		case 'build':
@@ -59,11 +77,11 @@ export async function runCli(argv) {
 			await watchProject();
 			break;
 		case 'deploy':
-			await deployProject(args[0] || 'prod');
+			await deployProject(positionals[0] || 'prod');
 			break;
 		case 'product':
 			await buildProject();
-			await deployProject(args[0] || 'prod');
+			await deployProject(resolveDeployTarget(command, positionals, variantConfig));
 			break;
 		case 'release':
 			await buildProject();

@@ -207,6 +207,43 @@ npm run product          # build + deploy to prod
 wp-toolkit deploy staging
 ```
 
+### Optional build outputs and named variants
+
+Version file and custom zip names are **opt-in** per plugin. wp-ulike uses the default `{slug}.zip` with no version file. Commercial plugins can enable more:
+
+```js
+build: {
+  zipName: '{slug}.{version}.zip',
+  versionFile: {
+    enabled: true,
+    includeInZip: true,       // add version txt inside the plugin zip
+    writeToBuildDir: false,   // set true to also write build/my-plugin-1.0.0.txt
+    name: '{slug}-{version}.txt',
+    content: '"{title}" latest version: {versionLabel}\n',
+  },
+},
+
+// Named variants for alternate builds (domain swaps, regional configs, etc.)
+variants: {
+  regional: {
+    zipSuffix: '-regional',
+    deploy: 'staging',
+    versionFile: false,
+    replacements: [
+      { from: 'example.com', to: 'example.ir' },
+    ],
+    files: ['**/*.php', 'admin/assets/js/*.js'],
+  },
+},
+```
+
+```bash
+wp-toolkit build
+wp-toolkit build --variant regional
+wp-toolkit product staging --variant regional
+WP_BUILD_VARIANT=regional wp-toolkit product
+```
+
 Add as many deploy targets as you need:
 
 ```js

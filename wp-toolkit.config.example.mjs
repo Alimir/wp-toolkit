@@ -80,6 +80,28 @@ export default {
 		js: ['assets/js/src/**/*.js', 'admin/assets/js/src/**/*.js'],
 	},
 
+	// Optional — custom zip name and version file (disabled by default).
+	// build: {
+	// 	zipName: '{slug}.{version}.zip',
+	// 	versionFile: {
+	// 		enabled: true,
+	// 		includeInZip: true,
+	// 		writeToBuildDir: false,
+	// 		name: '{slug}-{version}.txt',
+	// 		content: '"{title}" latest version: {versionLabel}\n',
+	// 	},
+	// },
+	//
+	// Optional — named alternate builds with string replacements.
+	// variants: {
+	// 	regional: {
+	// 		zipSuffix: '-regional',
+	// 		deploy: 'staging',
+	// 		replacements: [{ from: 'example.com', to: 'example.local' }],
+	// 		files: ['**/*.php'],
+	// 	},
+	// },
+
 	validation: {
 		forbidden: [
 			'.env',

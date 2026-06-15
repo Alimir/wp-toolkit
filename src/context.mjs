@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { DEFAULT_EXCLUDES, DEFAULT_FORBIDDEN_BUILD_ARTIFACTS, DEFAULT_REQUIRED_BUILD_FILES, DEFAULT_WATCH } from './defaults.mjs';
 import { loadEnv, loadToolkitConfig } from './load-env.mjs';
 import { assertSafeDeployTarget, assertSafeSvnConfig } from './security.mjs';
+import { resolveZipPath } from './build-helpers.mjs';
 
 function targetFromEnv(env, prefix) {
 	const port = env[`${prefix}_PORT`];
@@ -45,13 +46,20 @@ function buildPhpHeader(pkg) {
 	].join('\n');
 }
 
-export async function createContext(rootDir = process.cwd()) {
+export async function createContext(rootDir = process.cwd(), options = {}) {
 	const toolkitConfig = await loadToolkitConfig(rootDir);
 	const pkg = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8'));
 	const env = loadEnv(rootDir);
 	const slug = toolkitConfig.slug || pkg.name;
 	const mainFile = toolkitConfig.mainFile || `${slug}.php`;
 	const textDomain = toolkitConfig.textDomain || slug;
+	const buildVariant = options.variant || null;
+	const variantConfig = buildVariant ? toolkitConfig.variants?.[buildVariant] : null;
+
+	if (buildVariant && !variantConfig) {
+		throw new Error(`Unknown build variant "${buildVariant}". Check variants in wp-toolkit.config.mjs.`);
+	}
+
 	const releaseConfig = toolkitConfig.release || {};
 	const releaseEnabled = releaseConfig.enabled !== false && Boolean(releaseConfig.svnUrl || slug);
 
@@ -59,7 +67,7 @@ export async function createContext(rootDir = process.cwd()) {
 		root: rootDir,
 		buildDir: join(rootDir, 'build'),
 		buildPath: join(rootDir, 'build', slug),
-		zipPath: join(rootDir, 'build', `${slug}.zip`),
+		zipPath: resolveZipPath(rootDir, { config: toolkitConfig, slug, pkg, meta: { version: `${pkg.title || pkg.name} - v${pkg.version}` } }, variantConfig),
 		wpAssets: join(rootDir, releaseConfig.wpAssets || 'wp-assets'),
 	};
 
@@ -103,6 +111,8 @@ export async function createContext(rootDir = process.cwd()) {
 		slug,
 		mainFile,
 		textDomain,
+		buildVariant,
+		variantConfig,
 		jsSources: toolkitConfig.jsSources || [],
 		sassEntries: toolkitConfig.sassEntries || {},
 		js: {
@@ -153,8 +163,8 @@ export async function createContext(rootDir = process.cwd()) {
 
 let activeContext = null;
 
-export async function initContext(rootDir = process.cwd()) {
-	activeContext = await createContext(rootDir);
+export async function initContext(rootDir = process.cwd(), options = {}) {
+	activeContext = await createContext(rootDir, options);
 	return activeContext;
 }
 

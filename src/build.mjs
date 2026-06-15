@@ -1,6 +1,7 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import preprocess from 'preprocess';
+import { applyReplacements, buildTemplateVars, resolveTemplate } from './build-helpers.mjs';
 import { getContext } from './context.mjs';
 import { buildCss } from './build-css.mjs';
 import { buildJs } from './build-js.mjs';
@@ -205,15 +206,45 @@ function optimizeReleaseBundle(context) {
 }
 
 function writeVersionFile(context) {
-	const { paths, pkg } = context;
+	const buildConfig = context.config.build || {};
+	const rawConfig =
+		context.variantConfig?.versionFile === false
+			? null
+			: context.variantConfig?.versionFile || buildConfig.versionFile;
 
-	for (const file of readdirSync(paths.buildDir)) {
-		if (file.endsWith('.txt')) {
-			rmSync(join(paths.buildDir, file), { force: true });
-		}
+	if (!rawConfig || rawConfig.enabled === false) {
+		return;
 	}
 
-	writeFileSync(join(paths.buildDir, `${pkg.version}.txt`), `Latest version: v${pkg.version}\n`, 'utf8');
+	const versionConfig = rawConfig;
+	const { paths } = context;
+	const vars = buildTemplateVars(context);
+	const fileName = resolveTemplate(versionConfig.name || '{slug}-{version}.txt', vars);
+	const content = resolveTemplate(
+		versionConfig.content || '{title} latest version: {versionLabel}\n',
+		vars
+	);
+
+	if (versionConfig.writeToBuildDir !== false) {
+		const versionPath = join(paths.buildDir, fileName);
+
+		for (const file of readdirSync(paths.buildDir)) {
+			if (file.startsWith(`${context.slug}-`) && file.endsWith('.txt')) {
+				rmSync(join(paths.buildDir, file), { force: true });
+			}
+		}
+
+		writeFileSync(versionPath, content, 'utf8');
+		console.log(`Wrote ${fileName}`);
+	}
+
+	if (versionConfig.includeInZip) {
+		const zipRelativePath = versionConfig.zipPath || fileName;
+		const targetPath = join(paths.buildPath, zipRelativePath);
+		mkdirSync(dirname(targetPath), { recursive: true });
+		writeFileSync(targetPath, content, 'utf8');
+		console.log(`Included version file in zip bundle: ${zipRelativePath}`);
+	}
 }
 
 async function packBuild(context) {
@@ -230,8 +261,9 @@ async function packBuild(context) {
 
 export async function buildProject() {
 	const context = getContext();
+	const label = context.buildVariant ? `${context.meta.project} v${context.pkg.version} (${context.buildVariant})` : `${context.meta.project} v${context.pkg.version}`;
 
-	console.log(`Building ${context.meta.project} v${context.pkg.version}...`);
+	console.log(`Building ${label}...`);
 	await buildJs();
 	await buildCss();
 	console.log('Copying plugin files to build/...');
@@ -239,6 +271,17 @@ export async function buildProject() {
 	console.log('Cleaning build artifacts...');
 	purgeJunkFiles(context.paths.buildPath);
 	await compressImages(context.paths.buildPath);
+
+	if (context.variantConfig?.replacements?.length) {
+		console.log('Applying build variant replacements...');
+		applyReplacements(
+			context.paths.buildPath,
+			context.variantConfig.files || ['**/*.php'],
+			context.variantConfig.replacements,
+			walkFiles
+		);
+	}
+
 	console.log('Applying production preprocess flags...');
 	applyPreprocess(context);
 	console.log('Optimizing release bundle...');

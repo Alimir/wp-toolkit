@@ -1,0 +1,54 @@
+{
+  "name": "@alimir/wp-toolkit",
+  "version": "1.0.3",
+  "description": "npm-based build and deploy toolkit for WordPress plugins — compile assets, package releases, rsync deploy, and optional WordPress.org SVN publish.",
+  "type": "module",
+  "bin": {
+    "wp-toolkit": "./bin/wp-toolkit.mjs"
+  },
+  "exports": {
+    ".": "./src/context.mjs"
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
+  "scripts": {
+    "test": "node bin/wp-toolkit.mjs"
+  },
+  "keywords": [
+    "wordpress",
+    "wordpress-plugin",
+    "build",
+    "deploy",
+    "grunt",
+    "sass",
+    "wordpress-org",
+    "svn",
+    "rsync"
+  ],
+  "author": {
+    "name": "TechnoWich",
+    "email": "wpulike@gmail.com",
+    "url": "https://wpulike.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Alimir/wp-toolkit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Alimir/wp-toolkit/issues"
+  },
+  "homepage": "https://github.com/Alimir/wp-toolkit#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.3",
+    "lightningcss": "^1.29.3",
+    "preprocess": "^3.2.0",
+    "sass": "^1.89.2",
+    "terser": "^5.43.1"
+  }
+}

@@ -44,14 +44,10 @@ export async function resolveBuildVariant(command, args, rootDir = process.cwd()
 	return { variant: null, positionals, config };
 }
 
-export function resolveDeployTarget(command, positionals, variantConfig) {
+export function resolveDeployTarget(command, positionals) {
 	if (command === 'product' && positionals[0]) {
 		return positionals[0];
 	}
 
-	if (variantConfig?.deploy) {
-		return variantConfig.deploy;
-	}
-
-	return 'prod';
+	return null;
 }

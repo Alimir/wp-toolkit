@@ -21,7 +21,7 @@ Commands:
   dev                        Watch and rebuild assets
   deploy [name]              Rsync build/ to a configured server (default: prod)
   product [name] [--variant <name>]
-                             Build then deploy (optional named variant)
+                             Build then deploy (variant deploy is optional)
   release                    Build then publish to WordPress.org SVN
   i18n                       Generate POT translation file
   i18n:json                  Generate JSON files from PO translations
@@ -51,17 +51,15 @@ export async function runCli(argv) {
 	}
 
 	const buildCommands = new Set(['build', 'product', 'release']);
-	const { variant, positionals, config } = buildCommands.has(command)
+	const { variant, positionals } = buildCommands.has(command)
 		? await resolveBuildVariant(command, args)
-		: { variant: null, positionals: args, config: null };
+		: { variant: null, positionals: args };
 
 	if (buildCommands.has(command)) {
 		await initContext(process.cwd(), { variant });
 	} else {
 		await initContext(process.cwd());
 	}
-
-	const variantConfig = variant ? config?.variants?.[variant] : null;
 
 	switch (command) {
 		case 'build':
@@ -81,7 +79,7 @@ export async function runCli(argv) {
 			break;
 		case 'product':
 			await buildProject();
-			await deployProject(resolveDeployTarget(command, positionals, variantConfig));
+			await deployProject(resolveDeployTarget(command, positionals));
 			break;
 		case 'release':
 			await buildProject();

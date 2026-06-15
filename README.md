@@ -94,36 +94,95 @@ WP_RELEASE_MESSAGE="Release 1.2.0" npm run release
 
 ## Configuration
 
-**All plugin-specific settings live in `wp-toolkit.config.mjs` in your project** — not in this package.
+**All plugin-specific settings live in `wp-toolkit.config.mjs`** — not in wp-toolkit itself.
 
-Minimal example:
+### Simple by default
+
+Most plugins only need:
+
+1. **Paths** — `slug`, `jsSources`, `sassEntries`, `excludes`
+2. **One deploy target** or **WordPress.org release**
+3. **npm scripts** — `build`, `dev`, `product` or `release`
+
+You do **not** need variants, version files, or custom rsync unless you want them.
+
+### Level 1 — Every plugin (start here)
 
 ```js
 export default {
   slug: 'my-plugin',
-  mainFile: 'my-plugin.php',
-  textDomain: 'my-plugin',
-
   jsSources: ['assets/js/src/app.js'],
   sassEntries: {
     'assets/css/my-plugin.css': 'assets/sass/my-plugin.scss',
   },
+  excludes: ['assets/sass', 'assets/js/src'],
 
-  deploy: {
-    prod: { envPrefix: 'DEPLOY_PROD' },
-  },
-
-  release: {
-    enabled: true,
-    wpAssets: 'wp-assets',
-    svnUrl: 'https://plugins.svn.wordpress.org/my-plugin',
-  },
+  // Pick one:
+  release: { enabled: true, svnUrl: 'https://plugins.svn.wordpress.org/my-plugin' }, // WP.org
+  // deploy: { prod: { envPrefix: 'DEPLOY_PROD' } },                                  // commercial
 };
 ```
 
-See `wp-toolkit.config.example.mjs` for every available option with comments.
+```bash
+npm run build      # → build/my-plugin.zip
+npm run dev        # watch assets
+npm run release    # WP.org only
+npm run product    # deploy only
+```
 
-### Key options
+### Level 2 — Optional extras (only if you need them)
+
+**Version in zip + versioned zip name** (commercial plugins):
+
+```js
+build: {
+  zipName: '{slug}.{version}.zip',
+  versionFile: { enabled: true, includeInZip: true },
+},
+```
+
+**Deploy to multiple servers** — add a name, add matching `.env` vars:
+
+```js
+deploy: {
+  prod: { envPrefix: 'DEPLOY_PROD' },
+  staging: { envPrefix: 'DEPLOY_STAGING' },
+},
+```
+
+```bash
+wp-toolkit product staging
+```
+
+### Level 3 — Alternate builds (variants)
+
+Use when you need a **second build** with different strings or zip name.  
+**Deploy on a variant is optional** — omit it for build-only variants.
+
+```js
+variants: {
+  regional: {
+    zipSuffix: '-regional',
+    replacements: [{ from: 'example.com', to: 'example.ir' }],
+    files: ['**/*.php'],
+    deploy: 'staging',   // optional — name from deploy.{name} above
+  },
+},
+```
+
+```bash
+wp-toolkit build --variant regional
+wp-toolkit product --variant regional   # build + deploy (uses variant.deploy)
+```
+
+Add custom npm scripts for convenience:
+
+```json
+"build:regional": "wp-toolkit build --variant regional",
+"product:regional": "wp-toolkit product --variant regional"
+```
+
+### Config reference
 
 | Option | Purpose |
 |--------|---------|
@@ -141,30 +200,6 @@ See `wp-toolkit.config.example.mjs` for every available option with comments.
 | `release` | WordPress.org SVN settings (`enabled: false` to disable) |
 | `i18n` | POT generation settings |
 | `validation` | Files that must not appear in a release build |
-
-### Multiple JavaScript bundles
-
-For plugins with separate front-end and admin scripts, use `jsBundles` instead of `jsSources`:
-
-```js
-jsBundles: [
-  {
-    sources: ['assets/js/src/app.js'],
-    output: 'assets/js/my-plugin.js',
-    minOutput: 'assets/js/my-plugin.min.js',
-    banner: false,
-  },
-  {
-    sources: ['admin/assets/js/src/admin.js'],
-    output: 'admin/assets/js/admin.js',
-    minOutput: 'admin/assets/js/admin.js',
-  },
-],
-
-jsMinify: [
-  { input: 'assets/js/widget.js', output: 'assets/js/widget.min.js' },
-],
-```
 
 ### WordPress.org plugins
 
@@ -194,66 +229,44 @@ Release behaviour:
 
 ### Commercial / private plugins
 
-Disable SVN and use deploy only:
-
 ```js
-release: {
-  enabled: false,
-},
+release: { enabled: false },
+deploy: { prod: { envPrefix: 'DEPLOY_PROD' } },
 ```
 
 ```bash
-npm run product          # build + deploy to prod
-wp-toolkit deploy staging
+npm run product
 ```
 
-### Optional build outputs and named variants
+### Advanced (power users)
 
-Version file and custom zip names are **opt-in** per plugin. wp-ulike uses the default `{slug}.zip` with no version file. Commercial plugins can enable more:
+<details>
+<summary>Multiple JS bundles, custom rsync, inline variant deploy</summary>
 
-```js
-build: {
-  zipName: '{slug}.{version}.zip',
-  versionFile: {
-    enabled: true,
-    includeInZip: true,       // add version txt inside the plugin zip
-    writeToBuildDir: false,   // set true to also write build/my-plugin-1.0.0.txt
-    name: '{slug}-{version}.txt',
-    content: '"{title}" latest version: {versionLabel}\n',
-  },
-},
+**Multiple JS bundles** — use `jsBundles` instead of `jsSources` when you have front-end + admin scripts.
 
-// Named variants for alternate builds (domain swaps, regional configs, etc.)
-variants: {
-  regional: {
-    zipSuffix: '-regional',
-    deploy: 'staging',
-    versionFile: false,
-    replacements: [
-      { from: 'example.com', to: 'example.ir' },
-    ],
-    files: ['**/*.php', 'admin/assets/js/*.js'],
-  },
-},
-```
-
-```bash
-wp-toolkit build
-wp-toolkit build --variant regional
-wp-toolkit product staging --variant regional
-WP_BUILD_VARIANT=regional wp-toolkit product
-```
-
-Add as many deploy targets as you need:
+**Custom rsync args** — add to any deploy target:
 
 ```js
 deploy: {
-  prod: { envPrefix: 'DEPLOY_PROD' },
-  staging: { envPrefix: 'DEPLOY_STAGING' },
+  staging: {
+    envPrefix: 'DEPLOY_STAGING',
+    rsync: { args: ['-avzP', '--delete-after'] },
+  },
 },
 ```
 
-Each target reads `HOST`, `PORT`, and `DEST` from `.env` using its prefix (e.g. `DEPLOY_STAGING_HOST`).
+**Variant deploy override** — only if you need different rsync per variant:
+
+```js
+variants: {
+  regional: {
+    deploy: { target: 'staging', rsync: { args: ['-avzP', '--delete-after'] } },
+  },
+},
+```
+
+</details>
 
 ## Environment variables
 

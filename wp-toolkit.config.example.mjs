@@ -1,15 +1,21 @@
 /**
- * Copy this file to your plugin root as wp-toolkit.config.mjs and customize it.
+ * wp-toolkit.config.mjs — your plugin settings
  *
- * @type {import('@alimir/wp-toolkit').ToolkitConfig}
+ * SIMPLE BY DEFAULT
+ * - Set slug, asset paths, and excludes
+ * - Add deploy OR release (not both required)
+ * - Run: npm run build | dev | product | release
+ *
+ * OPTIONAL (only if you need them)
+ * - build.zipName / build.versionFile — custom zip + version txt
+ * - variants — alternate builds with replacements
+ * - variant.deploy — link variant to a deploy target (optional)
  */
 export default {
-	// Required — used for build folder name, zip file, and deploy paths.
 	slug: 'my-plugin',
 	mainFile: 'my-plugin.php',
 	textDomain: 'my-plugin',
 
-	// Single JS bundle (use jsBundles instead when you have front-end + admin scripts).
 	jsSources: [
 		'assets/js/src/helpers.js',
 		'assets/js/src/app.js',
@@ -26,38 +32,31 @@ export default {
 	},
 
 	css: {
-		// Keep unminified copies alongside .min.css (useful for debugging).
 		minifySeparate: ['assets/css/my-plugin.css'],
 	},
 
-	// Source files removed from the production zip after build.
 	devOnlyFiles: ['assets/js/my-plugin.js', 'assets/css/my-plugin.css'],
 
-	// Source directories and dev files — add every path that must not ship in production.
 	excludes: [
 		'assets/sass',
 		'admin/assets/sass',
 		'assets/js/src',
 		'admin/assets/js/src',
 		'wp-toolkit.config.mjs',
-		'webpack.config.js',
-		'src',
 	],
 
-	// Preprocess flags for /* @if PRO */ ... /* @endif */ blocks in PHP/CSS.
 	preprocess: {
 		DEV: false,
 		TODO: false,
 		PRO: true,
 	},
 
-	// Rsync deploy targets — credentials live in .env (see .env.example).
+	// Commercial: deploy to your server
 	deploy: {
 		prod: { envPrefix: 'DEPLOY_PROD' },
-		staging: { envPrefix: 'DEPLOY_STAGING' },
 	},
 
-	// WordPress.org SVN publish. Set enabled: false for commercial / private plugins.
+	// WP.org: publish to SVN (set enabled: false for commercial plugins)
 	release: {
 		enabled: true,
 		wpAssets: 'wp-assets',
@@ -68,39 +67,7 @@ export default {
 		domain: 'my-plugin',
 		potFile: 'languages/my-plugin.pot',
 		exclude: 'build,node_modules,vendor',
-		headers: {
-			'Report-Msgid-Bugs-To': 'https://example.com/support',
-			'Language-Team': 'My Plugin Team <hello@example.com>',
-		},
 	},
-
-	// Optional — dev mode derives watch dirs from sassEntries and jsSources/jsBundles automatically.
-	watch: {
-		scss: ['assets/sass/**/*.scss', 'admin/assets/sass/**/*.scss'],
-		js: ['assets/js/src/**/*.js', 'admin/assets/js/src/**/*.js'],
-	},
-
-	// Optional — custom zip name and version file (disabled by default).
-	// build: {
-	// 	zipName: '{slug}.{version}.zip',
-	// 	versionFile: {
-	// 		enabled: true,
-	// 		includeInZip: true,
-	// 		writeToBuildDir: false,
-	// 		name: '{slug}-{version}.txt',
-	// 		content: '"{title}" latest version: {versionLabel}\n',
-	// 	},
-	// },
-	//
-	// Optional — named alternate builds with string replacements.
-	// variants: {
-	// 	regional: {
-	// 		zipSuffix: '-regional',
-	// 		deploy: 'staging',
-	// 		replacements: [{ from: 'example.com', to: 'example.local' }],
-	// 		files: ['**/*.php'],
-	// 	},
-	// },
 
 	validation: {
 		forbidden: [
@@ -114,4 +81,20 @@ export default {
 			'admin/assets/sass',
 		],
 	},
+
+	// --- Optional extras (uncomment if needed) ---
+
+	// build: {
+	// 	zipName: '{slug}.{version}.zip',
+	// 	versionFile: { enabled: true, includeInZip: true },
+	// },
+
+	// variants: {
+	// 	regional: {
+	// 		zipSuffix: '-regional',
+	// 		replacements: [{ from: 'example.com', to: 'example.local' }],
+	// 		files: ['**/*.php'],
+	// 		deploy: 'staging',
+	// 	},
+	// },
 };

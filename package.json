@@ -11,8 +11,13 @@
   },
   "files": [
     "bin",
-    "src"
+    "src",
+    "wp-toolkit.config.example.mjs",
+    ".env.example"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "test": "node bin/wp-toolkit.mjs"
   },

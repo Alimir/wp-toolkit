@@ -73,18 +73,19 @@ async function buildBundle(bundle, context) {
 
 export async function buildJs() {
 	const context = getContext();
-	const { paths, jsBundles, jsMinify } = context;
+	const { paths, assets } = context;
+	const { bundles, minify } = assets.js;
 
-	if (!jsBundles.length && !jsMinify.length) {
-		console.log('No JavaScript sources configured. Skipping JavaScript build.');
+	if (!bundles.length && !minify.length) {
+		console.log('No JavaScript configured in assets.js. Skipping JavaScript build.');
 		return;
 	}
 
-	for (const bundle of jsBundles) {
+	for (const bundle of bundles) {
 		await buildBundle(bundle, context);
 	}
 
-	for (const target of jsMinify) {
+	for (const target of minify) {
 		await minifyFile(target.input, target.output, paths.root);
 	}
 }

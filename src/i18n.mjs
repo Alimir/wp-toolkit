@@ -4,6 +4,12 @@ import { getContext } from './context.mjs';
 export async function makePot() {
 	const context = getContext();
 	const { i18n } = context;
+
+	if (!i18n) {
+		throw new Error(
+			'i18n is not configured. Add an i18n section to wp-toolkit.config.mjs with domain and potFile.'
+		);
+	}
 	const headers = JSON.stringify({
 		'Report-Msgid-Bugs-To': 'https://wordpress.org/support/plugin/' + context.slug,
 		'Language-Team': `${context.pkg.title || context.slug} Team`,

@@ -96,32 +96,57 @@ WP_RELEASE_MESSAGE="Release 1.2.0" npm run release
 
 ## Configuration
 
-**All plugin-specific settings live in `wp-toolkit.config.mjs`** — not in wp-toolkit itself.
+**All plugin-specific settings live in `wp-toolkit.config.mjs`.** Every asset path is explicit — wp-toolkit does not guess filenames from your slug.
 
-### Simple by default
+The config uses one **lifetime structure**. Required sections are validated on startup with clear errors when something is missing or invalid.
 
-Most plugins only need:
+### Config layout
 
-1. **Paths** — `slug`, `jsSources`, `sassEntries`, `excludes`
-2. **One deploy target** or **WordPress.org release**
-3. **npm scripts** — `build`, `dev`, `product` or `release`
-
-You do **not** need variants, version files, or custom rsync unless you want them.
+| Section | Required | Purpose |
+|---------|----------|---------|
+| **Identity** | yes | `slug`, `mainFile`, `textDomain` |
+| **`assets`** | yes | `js.bundles`, `css.sassEntries` (use `[]` / `{}` when unused) |
+| **`build`** | yes | `excludes` and release packaging options |
+| **`release`** | no | WordPress.org SVN (`enabled: true` + `svnUrl`) |
+| **`deploy`** | no | Rsync targets for commercial / private plugins |
+| **`i18n`** | no | POT generation (`domain` + `potFile` when present) |
+| **`variants`** | no | Alternate builds (regional, white-label, …) |
 
 ### Level 1 — Every plugin (start here)
 
 ```js
 export default {
   slug: 'my-plugin',
-  jsSources: ['assets/js/src/app.js'],
-  sassEntries: {
-    'assets/css/my-plugin.css': 'assets/sass/my-plugin.scss',
-  },
-  excludes: ['assets/sass', 'assets/js/src'],
+  mainFile: 'my-plugin.php',
+  textDomain: 'my-plugin',
 
-  // Pick one:
-  release: { enabled: true, svnUrl: 'https://plugins.svn.wordpress.org/my-plugin' }, // WP.org
-  // deploy: { prod: { envPrefix: 'DEPLOY_PROD' } },                                  // commercial
+  assets: {
+    js: {
+      bundles: [
+        {
+          sources: ['assets/js/src/app.js'],
+          output: 'assets/js/my-plugin.js',
+          minOutput: 'assets/js/my-plugin.min.js',
+        },
+      ],
+    },
+    css: {
+      sassEntries: {
+        'assets/css/my-plugin.css': 'assets/sass/my-plugin.scss',
+      },
+    },
+  },
+
+  build: {
+    excludes: ['assets/sass', 'assets/js/src'],
+  },
+
+  // WordPress.org:
+  release: { enabled: true, svnUrl: 'https://plugins.svn.wordpress.org/my-plugin' },
+
+  // Commercial / private:
+  // release: { enabled: false },
+  // deploy: { prod: { envPrefix: 'DEPLOY_PROD' } },
 };
 ```
 
@@ -131,6 +156,8 @@ npm run dev        # watch assets
 npm run release    # WP.org only
 npm run product    # deploy only
 ```
+
+`validation.inheritExcludes` is **on by default** — paths in `build.excludes` are automatically blocked from release zips.
 
 ### Level 2 — Optional extras (only if you need them)
 
@@ -154,6 +181,23 @@ deploy: {
 
 ```bash
 wp-toolkit product staging
+```
+
+**Pre/post build hooks** — run your own commands as part of `wp-toolkit build`:
+
+```js
+build: {
+  hooks: {
+    preBuild: ['npm run codegen'],
+    postBuild: ['npm run notify:slack'],
+  },
+},
+```
+
+Hooks accept shell strings or objects:
+
+```js
+{ command: 'node', args: ['scripts/generate.php'], cwd: 'tools' }
 ```
 
 ### Level 3 — Alternate builds (variants)
@@ -189,19 +233,25 @@ Add custom npm scripts for convenience:
 | Option | Purpose |
 |--------|---------|
 | `slug` | Plugin folder name, zip name, deploy path |
-| `jsSources` | JS files to concatenate (single bundle) |
-| `jsBundles` | Multiple bundles (front-end + admin) — see below |
-| `jsMinify` | Extra standalone minify targets |
-| `sassEntries` | SCSS input → CSS output map |
-| `css.minifySeparate` | Keep unminified `.css` alongside `.min.css` |
-| `devOnlyFiles` | Source assets stripped from the production zip |
-| `excludes` | Paths excluded from `build/` — include your `assets/sass`, `assets/js/src`, etc. |
-| `validation.forbidden` | Source paths that must not appear in a release zip |
-| `preprocess` | Flags for `/* @if PRO */` conditional blocks |
+| `mainFile` | Main plugin PHP file |
+| `textDomain` | Translation text domain |
+| `assets.js.bundles` | JS bundles — each needs `sources`, `output`, `minOutput` |
+| `assets.js.minify` | Standalone minify targets (`{ input, output }`) |
+| `assets.css.sassEntries` | SCSS input → CSS output map |
+| `assets.css.minifySeparate` | Keep unminified `.css` alongside `.min.css` |
+| `assets.watch` | Extra directories to watch in `dev` |
+| `build.excludes` | Paths excluded from `build/` |
+| `build.devOnlyFiles` | Files stripped from the production zip |
+| `build.preprocess` | Flags for `/* @if PRO */` conditional blocks |
+| `build.hooks` | `preBuild` and `postBuild` shell commands |
+| `build.zipName` | Zip filename template (`{slug}`, `{version}`, …) |
+| `build.versionFile` | Write a version txt beside or inside the zip |
 | `deploy` | Named rsync targets (`prod`, `staging`, …) |
-| `release` | WordPress.org SVN settings (`enabled: false` to disable) |
-| `i18n` | POT generation settings |
-| `validation` | Files that must not appear in a release build |
+| `release` | WordPress.org SVN (`enabled: true` requires `svnUrl`) |
+| `i18n` | POT generation (`domain`, `potFile`) |
+| `validation.inheritExcludes` | Merge `build.excludes` into release checks (default: `true`) |
+| `validation.forbidden` | Extra paths that must not appear in a release zip |
+| `validation.checkMinifiedAssets` | Warn if PHP enqueues unminified assets (default: `true`) |
 
 ### WordPress.org plugins
 
@@ -245,7 +295,18 @@ npm run product
 <details>
 <summary>Multiple JS bundles, custom rsync, inline variant deploy</summary>
 
-**Multiple JS bundles** — use `jsBundles` instead of `jsSources` when you have front-end + admin scripts.
+**Multiple JS bundles** — add more entries under `assets.js.bundles`:
+
+```js
+assets: {
+  js: {
+    bundles: [
+      { sources: ['assets/js/src/app.js'], output: 'assets/js/my-plugin.js', minOutput: 'assets/js/my-plugin.min.js' },
+      { sources: ['admin/assets/js/src/admin.js'], output: 'admin/assets/js/admin.js', minOutput: 'admin/assets/js/admin.min.js' },
+    ],
+  },
+},
+```
 
 **Custom rsync args** — add to any deploy target:
 
@@ -273,6 +334,12 @@ variants: {
 ## Environment variables
 
 Copy `.env.example` to `.env` in your plugin root. Never commit `.env`.
+
+Deploy target names in config use `envPrefix`. That prefix becomes your `.env` keys:
+
+| Config | `.env` keys |
+|--------|-------------|
+| `deploy.prod.envPrefix: 'DEPLOY_PROD'` | `DEPLOY_PROD_HOST`, `DEPLOY_PROD_DEST`, `DEPLOY_PROD_PORT` |
 
 | Variable | Used by |
 |----------|---------|

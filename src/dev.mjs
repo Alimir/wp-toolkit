@@ -19,11 +19,11 @@ function collectWatchDirectories(context) {
 	const root = context.paths.root;
 	const dirs = new Set();
 
-	for (const input of Object.values(context.sassEntries)) {
+	for (const input of Object.values(context.assets.css.sassEntries)) {
 		dirs.add(dirname(join(root, input)));
 	}
 
-	for (const bundle of context.jsBundles) {
+	for (const bundle of context.assets.js.bundles) {
 		for (const source of bundle.sources) {
 			dirs.add(dirname(join(root, source)));
 		}
@@ -65,7 +65,7 @@ export async function watchProject() {
 	console.log('[dev] Watching assets. Press Ctrl+C to stop.');
 
 	if (!watchDirs.length) {
-		console.log('[dev] No asset source directories found. Check sassEntries/jsSources in wp-toolkit.config.mjs.');
+		console.log('[dev] No asset source directories found. Check assets.css.sassEntries and assets.js.bundles in wp-toolkit.config.mjs.');
 	} else {
 		const relativeDirs = watchDirs.map((dir) => dir.replace(`${context.paths.root}/`, ''));
 		console.log(`[dev] Directories: ${relativeDirs.join(', ')}`);

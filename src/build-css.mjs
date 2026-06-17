@@ -21,11 +21,11 @@ function minifyCss(inputPath, outputPath) {
 
 export async function buildCss() {
 	const context = getContext();
-	const { paths, sassEntries, css } = context;
-	const separateMinOutputs = css.minifySeparate || [];
+	const { paths, assets } = context;
+	const { sassEntries, minifySeparate } = assets.css;
 
 	if (!Object.keys(sassEntries).length) {
-		console.log('No sassEntries configured. Skipping CSS build.');
+		console.log('No SCSS entries configured in assets.css.sassEntries. Skipping CSS build.');
 		return;
 	}
 
@@ -46,7 +46,7 @@ export async function buildCss() {
 		writeFileSync(outputPath, result.css, 'utf8');
 		console.log(`Compiled ${outputRelative}`);
 
-		if (separateMinOutputs.includes(outputRelative)) {
+		if (minifySeparate.includes(outputRelative)) {
 			const minPath = outputPath.replace(/\.css$/, '.min.css');
 			minifyCss(outputPath, minPath);
 			console.log(`Minified ${minPath.replace(`${paths.root}/`, '')}`);

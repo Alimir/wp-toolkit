@@ -6,7 +6,7 @@ import { getContext } from './context.mjs';
 import { buildCss } from './build-css.mjs';
 import { buildJs } from './build-js.mjs';
 import { assertReleaseBuild } from './security.mjs';
-import { commandExists, run } from './utils.mjs';
+import { commandExists, run, runHooks } from './utils.mjs';
 
 function walkFiles(dir, matcher, files = []) {
 	for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -196,7 +196,7 @@ function applyPreprocess(context) {
 }
 
 function optimizeReleaseBundle(context) {
-	for (const relativePath of context.devOnlyFiles) {
+	for (const relativePath of context.build.devOnlyFiles) {
 		const filePath = join(context.paths.buildPath, relativePath);
 
 		if (existsSync(filePath)) {
@@ -264,6 +264,7 @@ export async function buildProject() {
 	const label = context.buildVariant ? `${context.meta.project} v${context.pkg.version} (${context.buildVariant})` : `${context.meta.project} v${context.pkg.version}`;
 
 	console.log(`Building ${label}...`);
+	await runHooks(context.build.hooks.preBuild, 'preBuild');
 	await buildJs();
 	await buildCss();
 	console.log('Copying plugin files to build/...');
@@ -290,6 +291,7 @@ export async function buildProject() {
 	writeVersionFile(context);
 	console.log('Creating zip archive...');
 	await packBuild(context);
+	await runHooks(context.build.hooks.postBuild, 'postBuild');
 	console.log(`Build complete: ${context.paths.buildPath}`);
 	console.log(`Zip archive: ${context.paths.zipPath}`);
 }

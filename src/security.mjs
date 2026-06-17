@@ -103,17 +103,42 @@ export function assertReleaseBuild(buildPath, context) {
 	}
 
 	if (validation.checkMinifiedAssets) {
-		const cssFile = `${slug}.css`;
-		const jsFile = `${slug}.js`;
-		const minCssFile = `${slug}.min.css`;
-		const minJsFile = `${slug}.min.js`;
+		for (const bundle of context.assets.js.bundles) {
+			const jsFile = bundle.output.split('/').pop();
+			const minJsFile = bundle.minOutput.split('/').pop();
 
-		if (mainFileContents.includes(cssFile) && !mainFileContents.includes(minCssFile)) {
-			blockers.push(`Production build still references unminified ${cssFile}.`);
+			if (
+				jsFile &&
+				minJsFile &&
+				mainFileContents.includes(jsFile) &&
+				!mainFileContents.includes(minJsFile)
+			) {
+				blockers.push(`Production build still references unminified ${jsFile}.`);
+			}
 		}
 
-		if (mainFileContents.includes(`'/js/${jsFile}'`) || mainFileContents.includes(`"/js/${jsFile}"`)) {
-			blockers.push(`Production build still references unminified ${jsFile}.`);
+		const separateMinOutputs = context.assets.css.minifySeparate;
+
+		for (const outputRelative of Object.keys(context.assets.css.sassEntries)) {
+			const cssFile = outputRelative.split('/').pop();
+
+			if (!cssFile) {
+				continue;
+			}
+
+			if (separateMinOutputs.includes(outputRelative)) {
+				const minCssFile = cssFile.replace(/\.css$/, '.min.css');
+
+				if (mainFileContents.includes(cssFile) && !mainFileContents.includes(minCssFile)) {
+					blockers.push(`Production build still references unminified ${cssFile}.`);
+				}
+
+				continue;
+			}
+
+			if (mainFileContents.includes(cssFile) && mainFileContents.includes(cssFile.replace(/\.css$/, '.min.css'))) {
+				continue;
+			}
 		}
 	}
 

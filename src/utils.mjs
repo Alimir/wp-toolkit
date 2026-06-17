@@ -43,6 +43,56 @@ export async function runIfAvailable(command, args, options = {}) {
 	return false;
 }
 
+export function runShell(command, options = {}) {
+	const context = getContext();
+
+	return new Promise((resolve, reject) => {
+		const child = spawn(command, [], {
+			cwd: options.cwd || context.paths.root,
+			stdio: 'inherit',
+			shell: true,
+			env: options.env || process.env,
+		});
+
+		child.on('close', (code) => {
+			if (code === 0) {
+				resolve();
+				return;
+			}
+
+			reject(new Error(`Hook failed (${code}): ${command}`));
+		});
+	});
+}
+
+export async function runHook(hook) {
+	if (typeof hook === 'string') {
+		await runShell(hook);
+		return;
+	}
+
+	if (hook?.command) {
+		await run(hook.command, hook.args || [], { cwd: hook.cwd });
+		return;
+	}
+
+	throw new Error('Invalid hook. Use a shell string or { command, args?, cwd? }.');
+}
+
+export async function runHooks(hooks, label) {
+	if (!hooks?.length) {
+		return;
+	}
+
+	console.log(`Running ${label} hooks...`);
+
+	for (const hook of hooks) {
+		const description = typeof hook === 'string' ? hook : `${hook.command} ${(hook.args || []).join(' ')}`.trim();
+		console.log(`→ ${description}`);
+		await runHook(hook);
+	}
+}
+
 export function runQuiet(command, args = [], options = {}) {
 	return new Promise((resolve, reject) => {
 		const child = spawn(command, args, {

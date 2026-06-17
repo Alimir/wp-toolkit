@@ -59,7 +59,7 @@ cp node_modules/@alimir/wp-toolkit/.env.example .env
     "release": "wp-toolkit release"
   },
   "devDependencies": {
-    "@alimir/wp-toolkit": "^2.0.0"
+    "@alimir/wp-toolkit": "^2.0.1"
   }
 }
 ```

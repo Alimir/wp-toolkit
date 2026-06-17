@@ -1,6 +1,6 @@
 {
   "name": "@alimir/wp-toolkit",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "npm-based build and deploy toolkit for WordPress plugins — compile assets, package releases, rsync deploy, and optional WordPress.org SVN publish.",
   "type": "module",
   "bin": {

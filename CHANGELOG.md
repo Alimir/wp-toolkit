@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-06-17
+
+### Added
+
+- `build.trimTrailingWhitespace` (default: `true`) — strips trailing spaces and tabs from text files in the release bundle before zipping (`.php`, `.js`, `.css`, `.json`, `.txt`, and more). Only affects `build/` output, not your source files.
+- `.editorconfig` for consistent whitespace in the toolkit repo.
+
+### Changed
+
+- README and example config document `build.trimTrailingWhitespace`.
+
 ## [2.0.0] - 2026-06-17
 
 ### Breaking changes
@@ -136,6 +147,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deploy targets with `envPrefix` and `.env` credentials.
 - Release safety: forbidden file checks, stable-tag validation, interactive SVN confirmation.
 
+[2.0.1]: https://github.com/Alimir/wp-toolkit/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/Alimir/wp-toolkit/compare/v1.1.3...v2.0.0
 [1.1.3]: https://github.com/Alimir/wp-toolkit/compare/v1.1.0...v1.1.3
 [1.1.0]: https://github.com/Alimir/wp-toolkit/compare/v1.0.0...v1.1.0

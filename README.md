@@ -17,8 +17,10 @@ A modern, config-first alternative to Grunt.
 In your WordPress plugin root:
 
 ```bash
-npm install github:Alimir/wp-toolkit --save-dev
+npm install @alimir/wp-toolkit --save-dev
 ```
+
+Package: [@alimir/wp-toolkit on npm](https://www.npmjs.com/package/@alimir/wp-toolkit)
 
 While developing the toolkit itself, link it locally:
 
@@ -57,7 +59,7 @@ cp node_modules/@alimir/wp-toolkit/.env.example .env
     "release": "wp-toolkit release"
   },
   "devDependencies": {
-    "@alimir/wp-toolkit": "github:Alimir/wp-toolkit"
+    "@alimir/wp-toolkit": "^1.1.3"
   }
 }
 ```

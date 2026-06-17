@@ -45,7 +45,7 @@
   "bugs": {
     "url": "https://github.com/Alimir/wp-toolkit/issues"
   },
-  "homepage": "https://github.com/Alimir/wp-toolkit#readme",
+  "homepage": "https://www.npmjs.com/package/@alimir/wp-toolkit",
   "engines": {
     "node": ">=18"
   },

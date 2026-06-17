@@ -246,6 +246,7 @@ Add custom npm scripts for convenience:
 | `build.hooks` | `preBuild` and `postBuild` shell commands |
 | `build.zipName` | Zip filename template (`{slug}`, `{version}`, …) |
 | `build.versionFile` | Write a version txt beside or inside the zip |
+| `build.trimTrailingWhitespace` | Strip trailing spaces/tabs from text files in the release bundle (default: `true`) |
 | `deploy` | Named rsync targets (`prod`, `staging`, …) |
 | `release` | WordPress.org SVN (`enabled: true` requires `svnUrl`) |
 | `i18n` | POT generation (`domain`, `potFile`) |

@@ -58,6 +58,7 @@ export default {
 			postBuild: [],
 		},
 		zipName: '{slug}.zip',
+		// trimTrailingWhitespace: false,
 		// versionFile: { enabled: true, includeInZip: true },
 	},
 

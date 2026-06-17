@@ -1,5 +1,5 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import { dirname, extname, join, relative } from 'node:path';
 import preprocess from 'preprocess';
 import { applyReplacements, buildTemplateVars, resolveTemplate } from './build-helpers.mjs';
 import { getContext } from './context.mjs';
@@ -136,6 +136,64 @@ function purgeJunkFiles(dir) {
 		if (isJunkEntry(entry.name)) {
 			rmSync(entryPath, { force: true });
 		}
+	}
+}
+
+const TRIM_EXTENSIONS = new Set([
+	'.php',
+	'.js',
+	'.mjs',
+	'.cjs',
+	'.css',
+	'.scss',
+	'.sass',
+	'.json',
+	'.txt',
+	'.md',
+	'.html',
+	'.htm',
+	'.xml',
+	'.svg',
+	'.pot',
+	'.po',
+]);
+
+function shouldTrimFile(filePath) {
+	return TRIM_EXTENSIONS.has(extname(filePath).toLowerCase());
+}
+
+function trimLineEndings(content) {
+	const endsWithNewline = content.endsWith('\n');
+	const trimmed = content
+		.split('\n')
+		.map((line) => line.replace(/[ \t\r]+$/, ''))
+		.join('\n');
+
+	if (!endsWithNewline) {
+		return trimmed;
+	}
+
+	return trimmed.length ? `${trimmed}\n` : '\n';
+}
+
+function trimTrailingWhitespace(buildPath) {
+	const files = walkFiles(buildPath, shouldTrimFile);
+	let changed = 0;
+
+	for (const filePath of files) {
+		const source = readFileSync(filePath, 'utf8');
+		const next = trimLineEndings(source);
+
+		if (next === source) {
+			continue;
+		}
+
+		writeFileSync(filePath, next, 'utf8');
+		changed += 1;
+	}
+
+	if (changed > 0) {
+		console.log(`Trimmed trailing whitespace in ${changed} files.`);
 	}
 }
 
@@ -287,6 +345,12 @@ export async function buildProject() {
 	applyPreprocess(context);
 	console.log('Optimizing release bundle...');
 	optimizeReleaseBundle(context);
+
+	if (context.build.trimTrailingWhitespace !== false) {
+		console.log('Trimming trailing whitespace...');
+		trimTrailingWhitespace(context.paths.buildPath);
+	}
+
 	assertReleaseBuild(context.paths.buildPath, context);
 	writeVersionFile(context);
 	console.log('Creating zip archive...');

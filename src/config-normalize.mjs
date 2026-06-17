@@ -148,6 +148,7 @@ export function normalizeToolkitConfig(config) {
 			hooks: { preBuild, postBuild },
 			zipName: typeof build.zipName === 'string' ? build.zipName : '{slug}.zip',
 			versionFile: build.versionFile,
+			trimTrailingWhitespace: build.trimTrailingWhitespace !== false,
 		},
 		deploy: config.deploy && typeof config.deploy === 'object' ? config.deploy : {},
 		release: config.release && typeof config.release === 'object' ? config.release : {},
